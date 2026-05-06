@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Content Auditor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <p style="margin-top: 15px;">Scanning for patterns...</p>
+    </div>
+
+    <nav>
+        <div class="logo">Truth Lens</div>
+        <div style="font-size: 0.8rem; color: var(--text-dim);">V 2.0 Professional Edition</div>
+    </nav>
+
+    <div class="dashboard">
+        <!-- Sidebar: History -->
+        <aside class="sidebar">
+            <h3>Recent Analysis</h3>
+            <ul id="history-list">
+                <!-- JS populated -->
+            </ul>
+            <button onclick="clearHistory()" style="margin-top: auto; background: none; border: none; color: var(--danger); cursor: pointer; font-size: 0.8rem;">Clear History</button>
+        </aside>
+
+        <!-- Main Content: Input -->
+        <main class="main-content">
+            <div class="editor-container">
+                <form action="/predict" method="POST" id="mainForm">
+                    <div class="toolbar">
+                        <label style="font-weight: 600;">Article Content</label>
+                        <div>
+                            <span onclick="clearText()" style="cursor: pointer; font-size: 0.8rem; color: var(--danger); margin-right: 15px;">Clear</span>
+                            <span id="word-count-badge" style="font-size: 0.8rem; color: var(--text-dim);">0 Words</span>
+                        </div>
+                    </div>
+                    <textarea name="news_text" id="news_input" placeholder="Paste news article headline or body text here for analysis..." required>{{ original_text }}</textarea>
+                    <button type="submit" class="verify-btn" onclick="showLoader()">Run Deep Scan</button>
+                </form>
+            </div>
+        </main>
+
+        <!-- Right Panel: Results -->
+        <aside class="results-panel">
+            <h3>Verification Report</h3>
+            <div style="margin-top: 20px;">
+                {% if prediction %}
+                    <div class="report-card">
+                        <div class="status-icon">
+                            {% if prediction == 'REAL' %}🛡️{% else %}🚩{% endif %}
+                        </div>
+                        <div class="badge {{ prediction }}-bg">{{ prediction }} CONTENT</div>
+                        
+                        <div class="metric-row">
+                            <span style="color: var(--text-dim);">Confidence</span>
+                            <span style="font-weight: 600; color: var(--success);">High</span>
+                        </div>
+                        <div class="metric-row">
+                            <span style="color: var(--text-dim);">Word Count</span>
+                            <span>{{ word_count }}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span style="color: var(--text-dim);">Read Time</span>
+                            <span>{{ read_time }} min</span>
+                        </div>
+                        <div class="metric-row" style="border: none;">
+                            <span style="color: var(--text-dim);">Analysis Speed</span>
+                            <span>{{ process_speed }}s</span>
+                        </div>
+
+                        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border);">
+                            <p style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 10px;">Was this accurate?</p>
+                            <button class="verify-btn" style="padding: 8px; margin: 0; width: 45%; font-size: 0.8rem; background: #21262d;" onclick="alert('Thanks!')">👍</button>
+                            <button class="verify-btn" style="padding: 8px; margin: 0; width: 45%; font-size: 0.8rem; background: #21262d;" onclick="alert('Feedback recorded.')">👎</button>
+                        </div>
+                    </div>
+                {% else %}
+                    <div style="text-align: center; margin-top: 100px; color: var(--text-dim);">
+                        <p>No content analyzed yet.</p>
+                        <p style="font-size: 0.8rem;">Ready for scan.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // 1. Loader Logic
+        function showLoader() {
+            if(document.getElementById('news_input').value.trim().length > 10) {
+                document.getElementById('loader').style.display = 'flex';
+            }
+        }
+
+        // 2. Clear Text Logic
+        function clearText() {
+            document.getElementById('news_input').value = '';
+            document.getElementById('word-count-badge').innerText = '0 Words';
+        }
+
+        // 3. Word Counter Logic
+        const tx = document.getElementById('news_input');
+        tx.addEventListener('input', () => {
+            const words = tx.value.trim().split(/\s+/).filter(x => x).length;
+            document.getElementById('word-count-badge').innerText = words + ' Words';
+        });
+
+        // 4. History Management (Local Storage)
+        document.addEventListener('DOMContentLoaded', () => {
+            const historyList = document.getElementById('history-list');
+            let history = JSON.parse(localStorage.getItem('news_history') || '[]');
+
+            // If we just got a prediction from Flask, save it to history
+            {% if prediction %}
+                const newEntry = {
+                    text: `{{ original_text[:40] }}...`,
+                    pred: `{{ prediction }}`,
+                    time: new Date().toLocaleTimeString()
+                };
+                history.unshift(newEntry);
+                history = history.slice(0, 10); // Keep last 10
+                localStorage.setItem('news_history', JSON.stringify(history));
+            {% endif %}
+
+            // Render History
+            history.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'history-item';
+                li.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:4px">
+                        <b style="color: ${item.pred === 'REAL' ? '#10b981' : '#f43f5e'}">${item.pred}</b>
+                        <span style="font-size:0.7rem; opacity:0.5">${item.time}</span>
+                    </div>
+                    <div style="opacity:0.7; font-size:0.75rem">${item.text}</div>
+                `;
+                historyList.appendChild(li);
+            });
+        });
+
+        function clearHistory() {
+            localStorage.removeItem('news_history');
+            location.reload();
+        }
+    </script>
+</body>
+</html>
