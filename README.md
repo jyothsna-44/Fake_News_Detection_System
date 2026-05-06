@@ -113,6 +113,12 @@ python app.py
 7. Result Display
 
 ---
+# Screenshots
+# Output 1
+<img width="1917" height="901" alt="Screenshot 2026-04-29 142321" src="https://github.com/user-attachments/assets/9a3bf787-5eeb-479b-bf68-7196752b8f25" />
+
+# Output 2
+<img width="1910" height="913" alt="Screenshot 2026-04-29 142346" src="https://github.com/user-attachments/assets/c3280830-e00a-43ce-ba04-4c1147cfc235" />
 
 # 📈 Future Enhancements
 
